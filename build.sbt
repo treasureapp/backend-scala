@@ -41,4 +41,8 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-mllib" % "2.1.1"
 )
 
-
+/**
+  * Date library
+  * https://github.com/nscala-time/nscala-time
+  */
+libraryDependencies += "com.github.nscala-time" %% "nscala-time" % "2.16.0"
