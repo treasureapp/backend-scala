@@ -14,12 +14,13 @@ import akka.util.{ByteString, Timeout}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 /**
   * Created by gcrowell on 2017-06-16.
   */
 trait TextParser[A <: Record] {
   def parse(text: String): Seq[A]
+  def toCSV(path: String): Unit = {
+  }
 }
 
 trait DataDownloadRequest extends TextParser[Record] {
@@ -28,14 +29,14 @@ trait DataDownloadRequest extends TextParser[Record] {
 
   def subject: Subject
 
+
+
 }
-
-
 /**
   * Root/Master
   * doesn't do anything.  just receives and forwards/routes DataDownloadRequest's to 1 of it's slaves.
   */
-class Master extends Actor with ActorLogging {
+class DownloaderRootActor extends Actor with ActorLogging {
 
   val slavePoolSize = 5
 
@@ -78,7 +79,6 @@ class Downloader extends Actor with ActorLogging {
 
   def receive = {
 
-
     case request: DataDownloadRequest => {
       log.info(s"${request.getClass} receieved")
       val httpRequest = HttpRequest(uri = request.urlString)
@@ -107,6 +107,7 @@ class Parser extends Actor with ActorLogging {
         log.info(s"http response for ${request.subject.name} received.  parsing.")
         val htmlText = body.utf8String
         val structuredData = request.parse(htmlText)
+        Spark.save(structuredData)
         log.info(structuredData.take(5).toString)
       }
     }
@@ -128,7 +129,7 @@ object DemoDownloader extends App {
   override def main(args: Array[String]): Unit = {
     class Testing123 extends Actor with ActorLogging {
 
-      private val masterRef = context.actorOf(Props[Master], name = "master_consumer")
+      private val masterRef = context.actorOf(Props[DownloaderRootActor], name = "master_consumer")
 
       override def receive: Receive = {
         case _ => {
@@ -149,7 +150,7 @@ object DemoDownloader extends App {
 
 
     println("continue on doing other work while data is downloaded/parsed")
-    Thread.sleep(3000)
+    Thread.sleep(10000)
 
     println("execution complete.  stopping actor system...")
     actorSystem.terminate()

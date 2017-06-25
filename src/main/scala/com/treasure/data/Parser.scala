@@ -36,9 +36,9 @@ class NasdaqHtmlFileParser extends LazyLogging with HtmlFileParser {
 
   override def parse(path: String): Unit = {
     val html = super.read(path)
-//    val goo = XML.LoadFile("")
-//    val foo = html \ "td"
-//    logger.info(s"${ }")
+    val goo = XML.loadString(html)
+    val foo = goo \ "td"
+    logger.info(s"${foo.text}")
 
   }
 

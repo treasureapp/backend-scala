@@ -7,7 +7,7 @@ package com.treasure.data
 /**
   * Record is place holder for a data point/row/record
   */
-sealed trait Record
+sealed trait Record extends Product
 
 /**
   * Concrete implementation of Record for price data
