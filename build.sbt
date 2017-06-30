@@ -49,8 +49,8 @@ libraryDependencies += "com.github.nscala-time" %% "nscala-time" % "2.16.0"
 
 
 /**
-  *
-  *
+  * toCSV
+  * https://github.com/melrief/PureCSV
   */
 resolvers += Resolver.sonatypeRepo("releases")
 libraryDependencies += "com.github.melrief" %% "purecsv" % "0.0.9"

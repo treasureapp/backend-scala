@@ -7,10 +7,19 @@ package com.treasure.data
 /**
   * Record is place holder for a data point/row/record
   */
-sealed trait Record extends Product
+sealed trait Record extends Product {
+  override def toString: String = {
+    this.toCSV(",")
+  }
+
+  def toCSV(sep: String): String = {
+    this.productIterator.mkString(sep)
+  }
+}
 
 /**
   * Concrete implementation of Record for price data
+  *
   * @param dateId
   * @param open
   * @param high
@@ -19,6 +28,13 @@ sealed trait Record extends Product
   * @param volume
   */
 case class PriceRecord(dateId: Long, open: Double, high: Double, low: Double, close: Double, volume: Long) extends Record
+
+object foo extends App {
+  override def main(args: Array[String]): Unit = {
+    val r = PriceRecord(12345678, 323.234, 424.342, 22.02, 342.23561, 341241)
+    println(r.toString)
+  }
+}
 
 /**
   * Generic placeholder for statement where the came from or what it describes

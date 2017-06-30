@@ -14,11 +14,13 @@ import akka.util.{ByteString, Timeout}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
 /**
   * Created by gcrowell on 2017-06-16.
   */
 trait TextParser[A <: Record] {
   def parse(text: String): Seq[A]
+
   def toCSV(path: String): Unit = {
   }
 }
@@ -30,8 +32,8 @@ trait DataDownloadRequest extends TextParser[Record] {
   def subject: Subject
 
 
-
 }
+
 /**
   * Root/Master
   * doesn't do anything.  just receives and forwards/routes DataDownloadRequest's to 1 of it's slaves.
@@ -80,7 +82,7 @@ class Downloader extends Actor with ActorLogging {
   def receive = {
 
     case request: DataDownloadRequest => {
-      log.info(s"${request.getClass} receieved")
+      log.info(s"${request.urlString} receieved")
       val httpRequest = HttpRequest(uri = request.urlString)
       val http = Http(context.system)
       val httpResponse = Await.result(http.singleRequest(httpRequest), Timeout(5 seconds).duration)
@@ -100,6 +102,7 @@ class Parser extends Actor with ActorLogging {
   import context.dispatcher
 
   final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
+  val child = context.actorOf(Props[ToSpark], name = "save-with-spark")
 
   override def receive: Receive = {
     case (HttpResponse(StatusCodes.OK, headers, entity, _), request: DataDownloadRequest) => {
@@ -107,8 +110,8 @@ class Parser extends Actor with ActorLogging {
         log.info(s"http response for ${request.subject.name} received.  parsing.")
         val htmlText = body.utf8String
         val structuredData = request.parse(htmlText)
-        Spark.save(structuredData)
         log.info(structuredData.take(5).toString)
+        child ! (structuredData, request)
       }
     }
     case resp@HttpResponse(code, _, _, _) => {
@@ -118,10 +121,22 @@ class Parser extends Actor with ActorLogging {
     }
     case _ => log.info("unhandled message received")
   }
-
-
 }
 
+// receives Seq[Record] and sends it to Spark object which saves
+class ToSpark extends Actor with ActorLogging {
+
+  final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
+
+  override def receive: Receive = {
+    case (data: Seq[Record], request: DataDownloadRequest) => {
+      log.info(s"saving ${data.length} records ${request.subject.name} to Parquet using Spark")
+      SaveToCsv.save(request, data)
+//      Spark.save(request, data)
+    }
+    case _ => log.info("unhandled message received")
+  }
+}
 
 
 object DemoDownloader extends App {
@@ -134,12 +149,10 @@ object DemoDownloader extends App {
       override def receive: Receive = {
         case _ => {
           log.info("beginning test")
-          masterRef ! new PriceDownloadRequest(Stock("MSFT"))
-          masterRef ! new PriceDownloadRequest(Stock("DATA"))
-          masterRef ! new PriceDownloadRequest(Stock("APPL"))
-          masterRef ! new PriceDownloadRequest(Stock("FB"))
-          masterRef ! new PriceDownloadRequest(Stock("GS"))
-          masterRef ! new PriceDownloadRequest(Stock("NKE"))
+          masterRef ! new PriceDownloadRequest(Stock("MSFT","MSFT"))
+          masterRef ! new PriceDownloadRequest(Stock("APPL","APPL"))
+          masterRef ! new PriceDownloadRequest(Stock("FB","FB"))
+          masterRef ! new PriceDownloadRequest(Stock("NKE","NKE"))
         }
       }
     }

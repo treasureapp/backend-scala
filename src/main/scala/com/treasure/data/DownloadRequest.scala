@@ -75,7 +75,8 @@ object PriceDownloadRequest {
   }
 
   def toDateArg(date: Calendar): String = {
-    s"${MMM_fmt.format(date.getTime)}+%2C+${date.get(Calendar.DAY_OF_MONTH)}+${date.get(Calendar.YEAR)}"
+//    http://www.google.ca/finance/historical?cid=358464&startdate=May+14%2C+2014&enddate=Jun+30%2C+2017&num=30&ei=UNdVWaD7C4H2jAHi8Kb4BA&output=csv
+    s"${MMM_fmt.format(date.getTime)}+${date.get(Calendar.DAY_OF_MONTH)}%2C+${date.get(Calendar.YEAR)}"
   }
 }
 
