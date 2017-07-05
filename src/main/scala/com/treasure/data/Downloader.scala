@@ -18,21 +18,7 @@ import scala.language.postfixOps
 /**
   * Created by gcrowell on 2017-06-16.
   */
-trait TextParser[A <: Record] {
-  def parse(text: String): Seq[A]
 
-  def toCSV(path: String): Unit = {
-  }
-}
-
-trait DataDownloadRequest extends TextParser[Record] {
-
-  def urlString: String
-
-  def subject: Subject
-
-
-}
 
 /**
   * Root/Master
@@ -95,7 +81,7 @@ class Downloader extends Actor with ActorLogging {
 /**
   * 1 Parser instance is started per Downloader instance
   *
-  * receives HttpResponse from Downloader
+  * receives tuple: (HttpResponse, DataDownloadRequest) from Downloader
   */
 class Parser extends Actor with ActorLogging {
 
@@ -107,7 +93,7 @@ class Parser extends Actor with ActorLogging {
   override def receive: Receive = {
     case (HttpResponse(StatusCodes.OK, headers, entity, _), request: DataDownloadRequest) => {
       entity.dataBytes.runFold(ByteString(""))(_ ++ _).foreach { body =>
-        log.info(s"http response for ${request.subject.name} received.  parsing.")
+        log.info(s"http response for ${request.ticker} received.  parsing.")
         val htmlText = body.utf8String
         val structuredData = request.parse(htmlText)
         log.info(structuredData.take(5).toString)
@@ -130,7 +116,7 @@ class ToSpark extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case (data: Seq[Record], request: DataDownloadRequest) => {
-      log.info(s"saving ${data.length} records ${request.subject.name} to Parquet using Spark")
+      log.info(s"saving ${data.length} records ${request.ticker} to Parquet using Spark")
       SaveToCsv.save(request, data)
 //      Spark.save(request, data)
     }
@@ -149,10 +135,10 @@ object DemoDownloader extends App {
       override def receive: Receive = {
         case _ => {
           log.info("beginning test")
-          masterRef ! new PriceDownloadRequest(Stock("MSFT","MSFT"))
-          masterRef ! new PriceDownloadRequest(Stock("APPL","APPL"))
-          masterRef ! new PriceDownloadRequest(Stock("FB","FB"))
-          masterRef ! new PriceDownloadRequest(Stock("NKE","NKE"))
+          masterRef ! new PriceDownloadRequest("MSFT")
+          masterRef ! new PriceDownloadRequest("APPL")
+          masterRef ! new PriceDownloadRequest("FB")
+          masterRef ! new PriceDownloadRequest("NKE")
         }
       }
     }

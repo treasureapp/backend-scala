@@ -32,7 +32,7 @@ object SaveToCsv {
   def save(request: DataDownloadRequest, data: Seq[Record]): Unit = {
     val destRoot = new File(priceRootPath)
     destRoot.mkdirs()
-    val destPath = destRoot + "/" + request.subject.name + ".csv"
+    val destPath = destRoot + "/" + request.ticker + ".csv"
     val destFile = new File(destPath)
     if (destFile.isFile) destFile.delete()
     val outFile = new FileWriter(destPath)
@@ -97,17 +97,5 @@ object Spark {
     stock_ds_parquet.show(10)
     println(s"${stock_ds_parquet.count()} records loaded")
   }
-}
-
-object EndPoint extends App {
-
-  override def main(args: Array[String]): Unit = {
-    val config = ConfigFactory.load()
-    println(config.isResolved)
-    println(config.getString("treasure.data.root"))
-    Spark.read
-  }
-
-
 }
 

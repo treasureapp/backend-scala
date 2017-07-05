@@ -1,6 +1,6 @@
 package test.treasure.data
 
-import com.treasure.data.{DownloaderEndPoint, PriceDownloadRequest, Spark, Stock}
+import com.treasure.data.{DownloaderEndPoint, PriceDownloadRequest, Spark}
 import org.scalatest.{FunSpec, Matchers}
 
 /**
@@ -9,7 +9,7 @@ import org.scalatest.{FunSpec, Matchers}
 class EndPointTest extends FunSpec with Matchers {
   describe("PriceDownloader") {
     it("") {
-      val priceRequest = new PriceDownloadRequest(Stock("MSFT"))
+      val priceRequest = new PriceDownloadRequest("MSFT")
       DownloaderEndPoint.handleDataDownloadRequest(priceRequest)
       Thread.sleep(10000)
     }

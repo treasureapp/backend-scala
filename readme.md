@@ -4,6 +4,12 @@
 
 ### Data Management
 
+#### Data Model
+
+##### `Record`
+
+
+
 #### Data Sources
 
 - Stock Prices (csv)
