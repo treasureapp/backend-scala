@@ -21,6 +21,28 @@ import scala.language.postfixOps
 
 
 /**
+  * parses raw text into into Seq[Record] (ie. a data table)
+  *
+  * @tparam A any type that implements the Record trait
+  */
+trait TextParser[A <: Record] {
+  def parse(text: String): Seq[A]
+}
+
+/**
+  * encapsulates all information required to download and parse into Seq[Record]
+  */
+trait DataDownloadRequest extends TextParser[Record] with Ticker {
+
+  def urlString: String
+
+  override def ticker: String
+
+}
+
+
+
+/**
   * Root/Master
   * doesn't do anything.  just receives and forwards/routes DataDownloadRequest's to 1 of it's slaves.
   */

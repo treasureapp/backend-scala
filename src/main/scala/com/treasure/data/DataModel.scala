@@ -7,7 +7,7 @@ package com.treasure.data
 /**
   * Ticker uniquely identifies some Asset
   */
-sealed trait Ticker {
+protected trait Ticker {
   def ticker: String
 }
 
@@ -41,24 +41,4 @@ sealed trait Record extends Product with Ticker {
   * @param volume
   */
 sealed case class PriceRecord(dateId: Long, ticker: String, open: Double, high: Double, low: Double, close: Double, volume: Long) extends Record
-
-/**
-  * parses raw text into into Seq[Record] (ie. a data table)
-  *
-  * @tparam A any type that implements the Record trait
-  */
-trait TextParser[A <: Record] {
-  def parse(text: String): Seq[A]
-}
-
-/**
-  * encapsulates all information required to download and parse into Seq[Record]
-  */
-trait DataDownloadRequest extends TextParser[Record] with Ticker {
-
-  def urlString: String
-
-  override def ticker: String
-
-}
 
