@@ -3,9 +3,14 @@ package com.treasure.data
 /**
   * Created by gcrowell on 2017-06-24.
   */
+
+/**
+  * Ticker uniquely identifies some Asset
+  */
 sealed trait Ticker {
   def ticker: String
 }
+
 /**
   * Record is place holder for a single datum
   */
@@ -35,37 +40,25 @@ sealed trait Record extends Product with Ticker {
   * @param close
   * @param volume
   */
-case class PriceRecord(dateId: Long, ticker: String, open: Double, high: Double, low: Double, close: Double, volume: Long) extends Record
-
+sealed case class PriceRecord(dateId: Long, ticker: String, open: Double, high: Double, low: Double, close: Double, volume: Long) extends Record
 
 /**
-  * Generic placeholder for statement where the came from or what it describes
+  * parses raw text into into Seq[Record] (ie. a data table)
+  *
+  * @tparam A any type that implements the Record trait
   */
-@deprecated
-trait Subject {
-  def name: String
-}
-
-@deprecated
-trait TradeableSubject extends Subject {
-  def symbol: String
-}
-
-@deprecated
-case class Stock(val symbol: String, val name: String = "") extends TradeableSubject
-
 trait TextParser[A <: Record] {
   def parse(text: String): Seq[A]
-
-  def toCSV(path: String): Unit = {
-  }
 }
 
+/**
+  * encapsulates all information required to download and parse into Seq[Record]
+  */
 trait DataDownloadRequest extends TextParser[Record] with Ticker {
 
   def urlString: String
 
   override def ticker: String
 
-
 }
+
