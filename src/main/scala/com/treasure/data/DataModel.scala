@@ -41,4 +41,3 @@ sealed trait Record extends Product with Ticker {
   * @param volume
   */
 sealed case class PriceRecord(dateId: Long, ticker: String, open: Double, high: Double, low: Double, close: Double, volume: Long) extends Record
-

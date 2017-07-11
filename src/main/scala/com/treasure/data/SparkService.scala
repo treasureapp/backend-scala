@@ -1,7 +1,5 @@
 package com.treasure.data
 
-import akka.actor.{Actor, ActorLogging}
-
 import scala.language.postfixOps
 
 /**
@@ -18,4 +16,3 @@ object SparkService {
     .config("spark.sql.warehouse.dir", "target/spark-warehouse")
     .getOrCreate
 }
-

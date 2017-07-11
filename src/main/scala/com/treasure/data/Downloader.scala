@@ -4,6 +4,8 @@ package com.treasure.data
   * Created by gcrowell on 2017-06-23.
   */
 
+import java.io.FileWriter
+
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props, Terminated}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, _}
@@ -11,9 +13,10 @@ import akka.routing.{ActorRefRoutee, RoundRobinRoutingLogic, Router}
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import akka.util.{ByteString, Timeout}
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.io.Source
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 /**
   * Created by gcrowell on 2017-06-16.
@@ -40,20 +43,18 @@ trait DataDownloadRequest extends TextParser[Record] with Ticker {
 
 }
 
-
-
 /**
   * Root/Master
   * doesn't do anything.  just receives and forwards/routes DataDownloadRequest's to 1 of it's slaves.
   */
 class DownloaderRootActor extends Actor with ActorLogging {
 
-  val slavePoolSize = 5
+  val slavePoolSize = 2
 
   var router = {
     // create slave pool
-    val slaves = Vector.fill(slavePoolSize) {
-      val r = context.actorOf(Props[Downloader])
+    val slaves = (0 to slavePoolSize - 1).map { (slaveIndex: Int) =>
+      val r = context.actorOf(Props[Downloader], name = s"downloader-${slaveIndex}")
       context watch r
       ActorRefRoutee(r)
     }
@@ -73,6 +74,7 @@ class DownloaderRootActor extends Actor with ActorLogging {
   }
 }
 
+
 /**
   * Many Downloader instances are started by Master
   *
@@ -90,12 +92,27 @@ class Downloader extends Actor with ActorLogging {
   def receive = {
 
     case request: DataDownloadRequest => {
-      log.info(s"${request.urlString} receieved")
-      val httpRequest = HttpRequest(uri = request.urlString)
-      val http = Http(context.system)
-      val httpResponse = Await.result(http.singleRequest(httpRequest), Timeout(5 seconds).duration)
-      child ! (httpResponse, request)
+      log.info(s"handling request: ${request.getClass.getSimpleName} ${request.ticker} -> ${request.urlString}")
+      implicit val ec = context.dispatcher
+//      import ExecutionContext.Implicits.global
+      val httpResponseFuture = Http(context.system).singleRequest(HttpRequest(uri = request.urlString))
+
+      //      val httpResponse = Await.result(
+      //        httpResponseFuture,
+      //        Timeout(3 seconds).duration
+      //      )
+      //      log.info(s"request handled: ${request.getClass.getSimpleName} ${request.ticker}")
+      //      child ! (httpResponseFuture, request)
+
+
+      httpResponseFuture.onComplete {
+        case Success(d) => child ! (d, request)
+        case Failure(f) => log.info(s"http Failure: ${f.getMessage}")
+        case _ =>
+      }
+//      child ! (httpResponseFuture.)
     }
+
     case _ => log.info(s"unhandled message received")
   }
 }
@@ -110,16 +127,18 @@ class Parser extends Actor with ActorLogging {
   import context.dispatcher
 
   final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
-  val child = context.actorOf(Props[ToSpark], name = "save-with-spark")
+  val child = context.actorOf(Props[Persister], name = "persist-data")
 
   override def receive: Receive = {
     case (HttpResponse(StatusCodes.OK, headers, entity, _), request: DataDownloadRequest) => {
       entity.dataBytes.runFold(ByteString(""))(_ ++ _).foreach { body =>
         log.info(s"http response for ${request.ticker} received.  parsing.")
-        val htmlText = body.utf8String
-        val structuredData = request.parse(htmlText)
-        log.info(structuredData.take(5).toString)
-        child ! (structuredData, request)
+        //        val structuredData = request.parse(body.utf8String)
+        val outFile = new FileWriter(s"${request.ticker}.txt")
+        outFile.write(body.utf8String)
+        outFile.close()
+        //        child ! (structuredData, request)
+        //        sender()
       }
     }
     case resp@HttpResponse(code, _, _, _) => {
@@ -127,53 +146,82 @@ class Parser extends Actor with ActorLogging {
       log.info("Request failed, response code: " + code)
       resp.discardEntityBytes()
     }
-    case _ => log.info("unhandled message received")
+    case _ => log.info(s"unhandled message received")
   }
 }
 
 // receives Seq[Record] and sends it to Spark object which saves
-class ToSpark extends Actor with ActorLogging {
+class Persister extends Actor with ActorLogging {
 
   final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
 
   override def receive: Receive = {
     case (data: Seq[Record], request: DataDownloadRequest) => {
-      log.info(s"saving ${data.length} records ${request.ticker} to Parquet using Spark")
+      log.info(s"persisting ${data.length} records ${request.ticker}")
       SaveToCsv.save(request, data)
-//      Spark.save(request, data)
+      //      Spark.save(request, data)
     }
     case _ => log.info("unhandled message received")
   }
 }
 
 
-object DemoDownloader extends App {
+object BootStrap extends App {
 
   override def main(args: Array[String]): Unit = {
-    class Testing123 extends Actor with ActorLogging {
 
-      private val masterRef = context.actorOf(Props[DownloaderRootActor], name = "master_consumer")
-
-      override def receive: Receive = {
-        case _ => {
-          log.info("beginning test")
-          masterRef ! new PriceDownloadRequest("MSFT")
-          masterRef ! new PriceDownloadRequest("APPL")
-          masterRef ! new PriceDownloadRequest("FB")
-          masterRef ! new PriceDownloadRequest("NKE")
-        }
-      }
-    }
     val actorSystem = ActorSystem("actor_system")
 
-    val testingRef = actorSystem.actorOf(Props[Testing123], "consuming_system")
-    testingRef ! "request test"
+    val clientActor = actorSystem.actorOf(Props[FromFile], "consuming_system")
+    clientActor ! "sadfa"
+
+    println("main thread: continue on doing other work while data is downloaded/parsed")
 
 
-    println("continue on doing other work while data is downloaded/parsed")
-    Thread.sleep(10000)
+    println("main thread: wait for Actor system termination")
+    Thread.sleep(Timeout(10 seconds).duration.toMillis)
 
-    println("execution complete.  stopping actor system...")
+
+    println("main thread: time out.  stop akka")
+    actorSystem.stop(clientActor)
+    println("main thread: execution complete.  terminate actor system...")
     actorSystem.terminate()
   }
+
+  class HardCodeTest extends Actor with ActorLogging {
+
+    private val masterRef = context.actorOf(Props[DownloaderRootActor], name = "master_consumer")
+
+    override def receive: Receive = {
+      case _ => {
+        log.info("beginning test")
+        masterRef ! new PriceDownloadRequest("MSFT")
+        masterRef ! new PriceDownloadRequest("FB")
+        masterRef ! new PriceDownloadRequest("NKE")
+        masterRef ! new PriceDownloadRequest("NKE")
+      }
+    }
+  }
+
+  class FromFile extends Actor with ActorLogging {
+
+    val masterRef = context.actorOf(Props[DownloaderRootActor], name = "master_consumer")
+
+    override def receive: Receive = {
+      case _ => {
+        log.info("beginning full download ...")
+        makeRequests.foreach((request: DataDownloadRequest) =>
+          masterRef.forward(request)
+        )
+      }
+    }
+
+    def makeRequests: Seq[PriceDownloadRequest] = {
+      val stockFile = Source.fromFile(s"/Users/gcrowell/Documents/git/treasureapp/stock.txt")
+      val requests = stockFile.getLines().map(_.split('|')(0)).filter(_.length > 0).map(new PriceDownloadRequest(_)).toSeq
+      requests
+    }
+  }
+
+
 }

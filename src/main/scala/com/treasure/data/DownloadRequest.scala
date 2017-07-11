@@ -14,7 +14,7 @@ case class PriceDownloadRequest(val ticker: String, val startDate: Option[Calend
 
 
   def parseCsvData(csv: String): Seq[PriceRecord] = {
-    csv.split("\n").drop(1).map((csvLine: String) => parseCsvLine(csvLine)).toList
+      csv.split("\n").drop(1).map((csvLine: String) => parseCsvLine(csvLine)).toList
   }
 
   def parseCsvLine(csvLine: String): PriceRecord = {
@@ -36,7 +36,6 @@ case class PriceDownloadRequest(val ticker: String, val startDate: Option[Calend
 
     val csv_tokens = csvLine.split(",")
     val date_tokens = csv_tokens(0).split("-")
-
     val yyyyMMdd = (
       date_tokens(2) match {
         case x if (x < "10") => s"200$x"
@@ -52,7 +51,9 @@ case class PriceDownloadRequest(val ticker: String, val startDate: Option[Calend
         case _ => "31"
       })
 
-    PriceRecord(yyyyMMdd.toLong, ticker, csv_tokens(1).toDouble, csv_tokens(2).toDouble, csv_tokens(3).toDouble, csv_tokens(4).toDouble, csv_tokens(5).toLong)
+    val price_tkns = csv_tokens.drop(1).dropRight(1).map((tkn:String) => if(tkn.equals("-")) 0 else tkn.toDouble)
+
+    PriceRecord(yyyyMMdd.toLong, ticker, price_tkns(0), price_tkns(1), price_tkns(2), price_tkns(3), csv_tokens(5).toLong)
   }
 
   override def urlString: String = {
