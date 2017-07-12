@@ -44,7 +44,7 @@ case class Price(ticker: String,
                 )
 
 
-object Foo extends App with LazyLogging {
+object DemoSparkLoad extends App with LazyLogging {
 
   /**
     * Explicitly define meta data information of csv data.
