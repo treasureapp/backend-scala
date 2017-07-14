@@ -8,13 +8,11 @@ import com.typesafe.config.ConfigFactory
   */
 object Config extends LazyLogging {
 
-  logger.debug("loading application.conf...")
-
   val config = ConfigFactory.load()
 
   val dataRootPath = config.getString("treasure.data.root")
   val priceRootPath = config.getString("treasure.data.price")
   val statementRootPath = config.getString("treasure.data.statement")
+  val price_file = config.getString("treasure.data.price_file")
 
-  logger.debug(s"${config.atKey("treasure")}")
 }

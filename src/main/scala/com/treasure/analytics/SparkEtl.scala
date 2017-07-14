@@ -20,9 +20,3 @@ object SparkEtl extends LazyLogging {
 
 
 }
-
-
-object DemoEtl {
-
-
-}

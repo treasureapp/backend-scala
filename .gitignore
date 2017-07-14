@@ -24,6 +24,8 @@ cmake-build-debug/
 
 # Mongo Explorer plugin:
 .idea/**/mongoSettings.xml
+.idea/
+project/
 
 ## File-based project format:
 *.iws
@@ -68,3 +70,4 @@ project/plugins/project/
 
 
 /target/spark-warehouse/
+/.idea/
