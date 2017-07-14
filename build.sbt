@@ -8,7 +8,7 @@ scalaVersion := "2.11.8"
 /**
   * logging
   */
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
+//libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
 /**
@@ -52,5 +52,5 @@ libraryDependencies += "com.github.nscala-time" %% "nscala-time" % "2.16.0"
   * toCSV
   * https://github.com/melrief/PureCSV
   */
-resolvers += Resolver.sonatypeRepo("releases")
-libraryDependencies += "com.github.melrief" %% "purecsv" % "0.0.9"
+//resolvers += Resolver.sonatypeRepo("releases")
+//libraryDependencies += "com.github.melrief" %% "purecsv" % "0.0.9"
