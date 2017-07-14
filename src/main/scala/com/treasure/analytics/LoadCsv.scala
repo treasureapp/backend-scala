@@ -25,38 +25,37 @@ import scala.language.postfixOps
   *      Created by gcrowell on 2017-07-11.
   */
 
-
 // each record in Dataset is an instance of Price
-//case class Price(ticker: String,
-//                 date: String,
-//                 open: Option[Double],
-//                 high: Option[Double],
-//                 low: Option[Double],
-//                 close: Option[Double],
-//                 volume: Option[Long],
-//                 exDividend: Option[Double],
-//                 splitRatio: Option[Double],
-//                 adjopen: Option[Double],
-//                 adjHigh: Option[Double],
-//                 adjLow: Option[Double],
-//                 adjClose: Option[Double],
-//                 adjVolume: Option[Long]
-//                )
 case class Price(ticker: String,
                  date: String,
-                 open: Option[String],
-                 high: Option[String],
-                 low: Option[String],
-                 close: Option[String],
-                 volume: Option[String],
-                 exDividend: Option[String],
-                 splitRatio: Option[String],
-                 adjopen: Option[String],
-                 adjHigh: Option[String],
-                 adjLow: Option[String],
-                 adjClose: Option[String],
-                 adjVolume: Option[String]
+                 open: Double,
+                 high: Double,
+                 low: Double,
+                 close: Double,
+                 volume: Long,
+                 exDividend: Double,
+                 splitRatio: Double,
+                 adjopen: Double,
+                 adjHigh: Double,
+                 adjLow: Double,
+                 adjClose: Double,
+                 adjVolume: Long
                 )
+//case class Price(ticker: String,
+//                 date: String,
+//                 open: Option[String],
+//                 high: Option[String],
+//                 low: Option[String],
+//                 close: Option[String],
+//                 volume: Option[String],
+//                 exDividend: Option[String],
+//                 splitRatio: Option[String],
+//                 adjopen: Option[String],
+//                 adjHigh: Option[String],
+//                 adjLow: Option[String],
+//                 adjClose: Option[String],
+//                 adjVolume: Option[String]
+//                )
 
 
 object DemoSparkLoad extends App with LazyLogging {
@@ -64,7 +63,7 @@ object DemoSparkLoad extends App with LazyLogging {
 
   /**
     * Explicitly define meta data information of csv data.
-    *
+    * @todo WTF could this be used for?
     * @note this is required because csv files don't include meta data
     * @see https://stackoverflow.com/a/42679059/5154695
     *
@@ -166,18 +165,18 @@ object DemoSparkLoad extends App with LazyLogging {
         Tuple1(Price(
           ticker,
           date,
-          Option(open.getOrElse("0.0")),
-          Option(high.getOrElse("0.0")),
-          Option(low.getOrElse("0.0")),
-          Option(close.getOrElse("0.0")),
-          Option(volume.getOrElse("0.0")),
-          Option(exDividend.getOrElse("0.0")),
-          Option(splitRatio.getOrElse("0.0")),
-          Option(adjopen.getOrElse("0.0")),
-          Option(adjHigh.getOrElse("0.0")),
-          Option(adjLow.getOrElse("0.0")),
-          Option(adjClose.getOrElse("0.0")),
-          Option(adjVolume.getOrElse("0.0"))
+          open.getOrElse("0.0").toDouble,
+          high.getOrElse("0.0").toDouble,
+          low.getOrElse("0.0").toDouble,
+          close.getOrElse("0.0").toDouble,
+          volume.getOrElse("0.0").toDouble.round,
+          exDividend.getOrElse("0.0").toDouble,
+          splitRatio.getOrElse("0.0").toDouble,
+          adjopen.getOrElse("0.0").toDouble,
+          adjHigh.getOrElse("0.0").toDouble,
+          adjLow.getOrElse("0.0").toDouble,
+          adjClose.getOrElse("0.0").toDouble,
+          adjVolume.getOrElse("0.0").toDouble.round
         ))
       case _ => Tuple1(null)
     }.as[Tuple1[Price]]
@@ -214,7 +213,7 @@ object DemoSparkLoad extends App with LazyLogging {
       */
     ss.read // creates DataFrameReader
       .option("header", true)
-      .schema(schema) // explicitly set meta data @todo has no effect
+      .schema(schema) // explicitly set meta data @todo this has no effect
       .csv(path) // executes reader, returns DataFrame
   }
 }
