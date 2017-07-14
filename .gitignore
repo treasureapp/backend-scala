@@ -71,3 +71,4 @@ project/plugins/project/
 
 /target/spark-warehouse/
 /.idea/
+!/src/main/resources/application.conf
