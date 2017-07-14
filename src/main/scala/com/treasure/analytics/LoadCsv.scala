@@ -5,7 +5,7 @@ import java.io.FileNotFoundException
 import com.treasure.util.Config
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.language.postfixOps
 
@@ -44,33 +44,33 @@ case class Price(ticker: String,
                 )
 
 case class Goo(x: String, y: String)
+//
+//object conversions {
+//  def toPrice(tkns: Array[String]): Option[Price] = {
+//    try {
+//      Some(Price(
+//        ticker = tkns(0),
+//        date = tkns(1),
+//        open = tkns(2).toDouble,
+//        high = tkns(3).toDouble,
+//        low = tkns(4).toDouble,
+//        close = tkns(5).toDouble,
+//        volume = tkns(6).toDouble.round,
+//        exDividend = tkns(7).toDouble,
+//        splitRatio = tkns(8).toDouble,
+//        adjopen = tkns(9).toDouble,
+//        adjHigh = tkns(10).toDouble,
+//        adjLow = tkns(11).toDouble,
+//        adjClose = tkns(12).toDouble,
+//        adjVolume = tkns(13).toDouble.round
+//      ))
+//    } catch {
+//      Some(Price("dfa","Dfa",1.,2.,3.,4.,5,6,7,8,9,0,1,2,3))
+//    }
+//  }
 
-object conversions {
-  def toPrice(tkns: Array[String]): Option[Price] = {
-    try {
-      Some(Price(
-        ticker = tkns(0),
-        date = tkns(1),
-        open = tkns(2).toDouble,
-        high = tkns(3).toDouble,
-        low = tkns(4).toDouble,
-        close = tkns(5).toDouble,
-        volume = tkns(6).toDouble.round,
-        exDividend = tkns(7).toDouble,
-        splitRatio = tkns(8).toDouble,
-        adjopen = tkns(9).toDouble,
-        adjHigh = tkns(10).toDouble,
-        adjLow = tkns(11).toDouble,
-        adjClose = tkns(12).toDouble,
-        adjVolume = tkns(13).toDouble.round
-      ))
-    } catch {
-      Nil
-    }
-  }
 
-
-}
+//}
 
 object DemoSparkLoad extends App with LazyLogging {
 
@@ -139,10 +139,11 @@ object DemoSparkLoad extends App with LazyLogging {
       //***********************************
 
       /**
+        * @todo convert to Dataset here
         * etl the data into Dataset[Price]
         */
-      val price_ds = toPriceDs(price_df)
-      println(price_ds.printSchema())
+//      val price_ds = toPriceDs(price_df)
+//      println(price_ds.printSchema())
 
     } else {
       logger.error(s"\n\ncsv file not found.  \nMove csv file to folder set in application.conf.  \nRename file to price_data.csv\n\n")
@@ -152,44 +153,46 @@ object DemoSparkLoad extends App with LazyLogging {
 
   }
 
-  def toPriceDs(price_df: DataFrame): Dataset[Price] = {
+  def toPriceDs(price_df: DataFrame): Unit = {
     price_df.printSchema()
 
-    import ss.implicits._
 
-    price_df.map {
-      case Row(
-      ticker: String,
-      date: String,
-      open: String,
-      high: String,
-      low: String,
-      close: String,
-      volume: String,
-      exDividend: String,
-      splitRatio: String,
-      adjopen: String,
-      adjHigh: String,
-      adjLow: String,
-      adjClose: String,
-      adjVolume: String)
-      =>
-        Price(
-          ticker,
-          date,
-          open.toDouble,
-          high.toDouble,
-          low.toDouble,
-          close.toDouble,
-          volume.toDouble.round,
-          exDividend.toDouble,
-          splitRatio.toDouble,
-          adjopen.toDouble,
-          adjHigh.toDouble,
-          adjLow.toDouble,
-          adjClose.toDouble,
-          adjVolume.toDouble.round)
-    }.as[Price]
+    /**
+      * @todo
+      */
+    //    price_df.map {
+//      case Row(
+//      ticker: String,
+//      date: String,
+//      open: String,
+//      high: String,
+//      low: String,
+//      close: String,
+//      volume: String,
+//      exDividend: String,
+//      splitRatio: String,
+//      adjopen: String,
+//      adjHigh: String,
+//      adjLow: String,
+//      adjClose: String,
+//      adjVolume: String)
+//      =>
+//        Price(
+//          ticker,
+//          date,
+//          open.toDouble,
+//          high.toDouble,
+//          low.toDouble,
+//          close.toDouble,
+//          volume.toDouble.round,
+//          exDividend.toDouble,
+//          splitRatio.toDouble,
+//          adjopen.toDouble,
+//          adjHigh.toDouble,
+//          adjLow.toDouble,
+//          adjClose.toDouble,
+//          adjVolume.toDouble.round)
+//    }.as[Price]
   }
   //
   //  def start(inputDf: DataFrame): Dataset[Price] = {
@@ -268,19 +271,19 @@ object DemoSparkLoad extends App with LazyLogging {
       .csv(path) // executes reader, returns DataFrame
   }
 
-  def readTxtFromPath(path: String, ss: SparkSession): DataFrame = {
-
-    import ss.implicits._
-
-    ss.sparkContext
-      .textFile(path)
-
-      .map((line: String) => line.split(","))
-      .map((tkns: Array[String]) =>
-        conversions.toPrice(tkns)
-      )
-      .toDF()
-
-  }
+//  def readTxtFromPath(path: String, ss: SparkSession): DataFrame = {
+//
+//    import ss.implicits._
+//
+//    ss.sparkContext
+//      .textFile(path)
+//
+//      .map((line: String) => line.split(","))
+//      .map((tkns: Array[String]) =>
+//        conversions.toPrice(tkns)
+//      )
+//      .toDF()
+//
+//  }
 
 }
