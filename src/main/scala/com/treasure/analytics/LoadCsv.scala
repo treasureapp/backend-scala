@@ -41,22 +41,6 @@ case class Price(ticker: String,
                  adjClose: Double,
                  adjVolume: Long
                 )
-//case class Price(ticker: String,
-//                 date: String,
-//                 open: Option[String],
-//                 high: Option[String],
-//                 low: Option[String],
-//                 close: Option[String],
-//                 volume: Option[String],
-//                 exDividend: Option[String],
-//                 splitRatio: Option[String],
-//                 adjopen: Option[String],
-//                 adjHigh: Option[String],
-//                 adjLow: Option[String],
-//                 adjClose: Option[String],
-//                 adjVolume: Option[String]
-//                )
-
 
 object DemoSparkLoad extends App with LazyLogging {
 
@@ -99,6 +83,8 @@ object DemoSparkLoad extends App with LazyLogging {
       //    .enableHiveSupport()
       .config("spark.sql.warehouse.dir", "target/spark-warehouse")
       .getOrCreate
+
+    logger.debug(s"${ss.conf.getAll}")
 
     /**
       * set logging level.
