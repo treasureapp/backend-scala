@@ -5,7 +5,7 @@ import java.io.FileNotFoundException
 import com.treasure.util.Config
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 
 import scala.language.postfixOps
 
@@ -25,7 +25,6 @@ import scala.language.postfixOps
   *      Created by gcrowell on 2017-07-11.
   */
 
-
 // each record in Dataset is an instance of Price
 case class Price(ticker: String,
                  date: String,
@@ -42,42 +41,29 @@ case class Price(ticker: String,
                  adjClose: Double,
                  adjVolume: Long
                 )
+//case class Price(ticker: String,
+//                 date: String,
+//                 open: Option[String],
+//                 high: Option[String],
+//                 low: Option[String],
+//                 close: Option[String],
+//                 volume: Option[String],
+//                 exDividend: Option[String],
+//                 splitRatio: Option[String],
+//                 adjopen: Option[String],
+//                 adjHigh: Option[String],
+//                 adjLow: Option[String],
+//                 adjClose: Option[String],
+//                 adjVolume: Option[String]
+//                )
 
-case class Goo(x: String, y: String)
-//
-//object conversions {
-//  def toPrice(tkns: Array[String]): Option[Price] = {
-//    try {
-//      Some(Price(
-//        ticker = tkns(0),
-//        date = tkns(1),
-//        open = tkns(2).toDouble,
-//        high = tkns(3).toDouble,
-//        low = tkns(4).toDouble,
-//        close = tkns(5).toDouble,
-//        volume = tkns(6).toDouble.round,
-//        exDividend = tkns(7).toDouble,
-//        splitRatio = tkns(8).toDouble,
-//        adjopen = tkns(9).toDouble,
-//        adjHigh = tkns(10).toDouble,
-//        adjLow = tkns(11).toDouble,
-//        adjClose = tkns(12).toDouble,
-//        adjVolume = tkns(13).toDouble.round
-//      ))
-//    } catch {
-//      Some(Price("dfa","Dfa",1.,2.,3.,4.,5,6,7,8,9,0,1,2,3))
-//    }
-//  }
-
-
-//}
 
 object DemoSparkLoad extends App with LazyLogging {
 
 
   /**
     * Explicitly define meta data information of csv data.
-    *
+    * @todo WTF could this be used for?
     * @note this is required because csv files don't include meta data
     * @see https://stackoverflow.com/a/42679059/5154695
     *
@@ -101,12 +87,11 @@ object DemoSparkLoad extends App with LazyLogging {
     )
   )
 
+
   override def main(args: Array[String]): Unit = {
 
     /**
-      * 1. Start SparkSession
-      *
-      * @todo wtf do these settings mean/do?
+      * Start SparkSession
       */
     val ss: SparkSession = SparkSession.builder
       .appName("My Spark Application")
@@ -115,15 +100,19 @@ object DemoSparkLoad extends App with LazyLogging {
       .config("spark.sql.warehouse.dir", "target/spark-warehouse")
       .getOrCreate
 
+    /**
+      * set logging level.
+      */
+    //    LogManager.getRootLogger.setLevel(Level.WARN)
 
     /**
       * path of csv is set by TypeSafe configuration: src/main/resources/application.conf
       */
-    val path = scala.reflect.io.Path(Config.dataRootPath + "/test_price_data.csv")
+    val path = scala.reflect.io.Path(Config.price_file)
     logger.debug(s"loading csv file from:\n${path}")
 
 
-    // check if file exists
+    // check if data file exists
     val csvExists = if (path.exists) {
 
 
@@ -131,110 +120,67 @@ object DemoSparkLoad extends App with LazyLogging {
       // Load data
       //***********************************
 
-      logger.info(s"File found.  Loading data ...")
+      logger.info(s"File found.  Loading data into DataFrame...")
       val price_df: DataFrame = readCsvFromPath(path.path, ss)
       println(s"${price_df.count} data records loaded")
-      println(price_df.printSchema())
+      price_df.printSchema()
 
       //***********************************
 
       /**
-        * @todo convert to Dataset here
         * etl the data into Dataset[Price]
         */
-//      val price_ds = toPriceDs(price_df)
-//      println(price_ds.printSchema())
+      logger.info(s"converting DataFrame -> Dataset[Price]")
+      val price_ds = toPriceDs(price_df, ss)
+      println(s"${price_ds.count} data records loaded")
+      price_ds.printSchema()
 
     } else {
-      logger.error(s"\n\ncsv file not found.  \nMove csv file to folder set in application.conf.  \nRename file to price_data.csv\n\n")
+      logger.error(s"\n\ncsv file not found.  \nMove csv file to folder set in application.conf.  \nRename file to ${path.toCanonical}\n\n")
       throw new FileNotFoundException(s"csv from https://www.quandl.com/product/WIKIP/WIKI/PRICES-Quandl-End-Of-Day-Stocks-Info expected at ${path.path}")
     }
-
-
   }
 
-  def toPriceDs(price_df: DataFrame): Unit = {
-    price_df.printSchema()
+  def toPriceDs(price_df: DataFrame, ss: SparkSession): Dataset[Tuple1[Price]] = {
 
+    import ss.implicits._
 
-    /**
-      * @todo
-      */
-    //    price_df.map {
-//      case Row(
-//      ticker: String,
-//      date: String,
-//      open: String,
-//      high: String,
-//      low: String,
-//      close: String,
-//      volume: String,
-//      exDividend: String,
-//      splitRatio: String,
-//      adjopen: String,
-//      adjHigh: String,
-//      adjLow: String,
-//      adjClose: String,
-//      adjVolume: String)
-//      =>
-//        Price(
-//          ticker,
-//          date,
-//          open.toDouble,
-//          high.toDouble,
-//          low.toDouble,
-//          close.toDouble,
-//          volume.toDouble.round,
-//          exDividend.toDouble,
-//          splitRatio.toDouble,
-//          adjopen.toDouble,
-//          adjHigh.toDouble,
-//          adjLow.toDouble,
-//          adjClose.toDouble,
-//          adjVolume.toDouble.round)
-//    }.as[Price]
+    price_df.map {
+      case Row(
+      ticker: String,
+      date: String,
+      open: Option[String],
+      high: Option[String],
+      low: Option[String],
+      close: Option[String],
+      volume: Option[String],
+      exDividend: Option[String],
+      splitRatio: Option[String],
+      adjopen: Option[String],
+      adjHigh: Option[String],
+      adjLow: Option[String],
+      adjClose: Option[String],
+      adjVolume: Option[String])
+      =>
+        Tuple1(Price(
+          ticker,
+          date,
+          open.getOrElse("0.0").toDouble,
+          high.getOrElse("0.0").toDouble,
+          low.getOrElse("0.0").toDouble,
+          close.getOrElse("0.0").toDouble,
+          volume.getOrElse("0.0").toDouble.round,
+          exDividend.getOrElse("0.0").toDouble,
+          splitRatio.getOrElse("0.0").toDouble,
+          adjopen.getOrElse("0.0").toDouble,
+          adjHigh.getOrElse("0.0").toDouble,
+          adjLow.getOrElse("0.0").toDouble,
+          adjClose.getOrElse("0.0").toDouble,
+          adjVolume.getOrElse("0.0").toDouble.round
+        ))
+      case _ => Tuple1(null)
+    }.as[Tuple1[Price]]
   }
-  //
-  //  def start(inputDf: DataFrame): Dataset[Price] = {
-  //    //      import ss.implicits._
-  //
-  //    inputDf.map {
-  //      case price: Price =>
-  //      case Row(
-  //      ticker: String,
-  //      date: String,
-  //      open: Double,
-  //      high: Double,
-  //      low: Double,
-  //      close: Double,
-  //      volume: Long,
-  //      exDividend: Double,
-  //      splitRatio: Double,
-  //      adjopen: Double,
-  //      adjHigh: Double,
-  //      adjLow: Double,
-  //      adjClose: Double,
-  //      adjVolume: Double
-  //      ) => Price(
-  //        ticker,
-  //        date,
-  //        open,
-  //        high,
-  //        low,
-  //        close,
-  //        volume,
-  //        exDividend,
-  //        splitRatio,
-  //        adjopen,
-  //        adjHigh,
-  //        adjLow,
-  //        adjClose,
-  //        adjVolume
-  //      )
-  //      case row: Row =>
-  //      case _ =>
-  //    }.as[Price]
-  //  }
 
   /**
     * Load csv data into Spark DataFrame
@@ -267,23 +213,7 @@ object DemoSparkLoad extends App with LazyLogging {
       */
     ss.read // creates DataFrameReader
       .option("header", true)
-      .schema(schema) // explicitly set meta data
+      .schema(schema) // explicitly set meta data @todo this has no effect
       .csv(path) // executes reader, returns DataFrame
   }
-
-//  def readTxtFromPath(path: String, ss: SparkSession): DataFrame = {
-//
-//    import ss.implicits._
-//
-//    ss.sparkContext
-//      .textFile(path)
-//
-//      .map((line: String) => line.split(","))
-//      .map((tkns: Array[String]) =>
-//        conversions.toPrice(tkns)
-//      )
-//      .toDF()
-//
-//  }
-
 }
