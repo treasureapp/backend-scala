@@ -1,37 +1,6 @@
-package com.treasure.util
-
-import java.util.Calendar
-
-import com.typesafe.config.ConfigFactory
-import com.typesafe.scalalogging.LazyLogging
+import com.treasure.util.Config
 
 import scala.io.Source
-
-/**
-  * Created by gcrowell on 2017-06-23.
-  */
-
-object Config extends LazyLogging {
-
-  val config = ConfigFactory.load()
-
-  val dataRootPath = config.getString("treasure.data.root")
-  val priceRootPath = config.getString("treasure.data.price")
-  val statementRootPath = config.getString("treasure.data.statement")
-  val price_file = config.getString("treasure.data.price_file")
-  val test_price_file = config.getString("treasure.data.test_price_file")
-
-}
-
-object Constants {
-  private val _epoch = Calendar.getInstance()
-  _epoch.set(1991, 10, 1)
-
-  def epoch: Calendar = {
-    _epoch
-  }
-}
-
 
 case class DateValue(subjectId: String, dateId: Long, value: Double)
 
@@ -62,5 +31,4 @@ object DataLoader {
   }
 
 }
-
 

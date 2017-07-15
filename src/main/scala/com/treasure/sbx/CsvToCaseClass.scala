@@ -1,37 +1,13 @@
-package com.treasure.util
-
-import java.util.Calendar
-
-import com.typesafe.config.ConfigFactory
-import com.typesafe.scalalogging.LazyLogging
-
-import scala.io.Source
+package com.treasure.sbx
 
 /**
-  * Created by gcrowell on 2017-06-23.
+  * Created by gcrowell on 2017-07-15.
   */
 
-object Config extends LazyLogging {
 
-  val config = ConfigFactory.load()
+import com.treasure.util.Config
 
-  val dataRootPath = config.getString("treasure.data.root")
-  val priceRootPath = config.getString("treasure.data.price")
-  val statementRootPath = config.getString("treasure.data.statement")
-  val price_file = config.getString("treasure.data.price_file")
-  val test_price_file = config.getString("treasure.data.test_price_file")
-
-}
-
-object Constants {
-  private val _epoch = Calendar.getInstance()
-  _epoch.set(1991, 10, 1)
-
-  def epoch: Calendar = {
-    _epoch
-  }
-}
-
+import scala.io.Source
 
 case class DateValue(subjectId: String, dateId: Long, value: Double)
 
@@ -57,10 +33,27 @@ object DataLoader {
     }.toSeq
   }
 
-  def toPricePoint(tupleData: Seq[Option[Tuple7[String, Long, Double, Double, Double, Double, Long]]]) : Seq[PricePoint] = {
+  def toPricePoint(tupleData: Seq[Option[Tuple7[String, Long, Double, Double, Double, Double, Long]]]): Seq[PricePoint] = {
     tupleData.flatten.map(TupleToPricePoint.convert)
   }
 
 }
 
 
+object DemoCsvConversion extends App {
+  override def main(args: Array[String]): Unit = {
+
+    val data = DataLoader.getData
+    println(data)
+    data.foreach(println)
+
+    val flatData = data.flatten
+    println(flatData)
+    flatData.foreach(println)
+
+    val seqPricePoint = flatData.map(TupleToPricePoint.convert)
+    println(seqPricePoint)
+    seqPricePoint.foreach(println)
+
+  }
+}
