@@ -6,7 +6,7 @@
 
 #### Data Model
 
-###Entities
+### Entities
 - Portfolio
 - Stocks
 - Transactions
