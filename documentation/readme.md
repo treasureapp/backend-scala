@@ -6,6 +6,16 @@
 
 #### Data Model
 
+###Entities
+- Portfolio
+- Stocks
+- Transactions
+- Holdings
+- Stock Prices
+- Financial Statements
+
+-To get the value of any portfolio as of a certain date, join Holdings to Stock Prices using the stock ID and date
+
 ##### `Record`
 
 
