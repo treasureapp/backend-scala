@@ -9,7 +9,7 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 /**
   * Created by gcrowell on 2017-07-19.
   */
-case class State(subject: String, date: String, value: String)
+case class State(subject: String, label: String, date: String, value: String)
 
 object Loader {
 
@@ -34,26 +34,24 @@ object Loader {
 
   import spark.implicits._
 
-  dataFrame.columns.foreach(println)
+  dataFrame.columns.foreach((column_name: String) => println(dataFrame.select(column_name).distinct()))
   dataFrame.columns.map(dataFrame.columns.indexOf(_)).foreach(println)
+//  dataFrame.columns.map(dataFrame.columns(_)).foreach(println)
 
 
   val filterFunc = (row: Row) =>
     if (
-      !row.isNullAt(0)
-        &&
-        !row.isNullAt(1)
-        &&
+      !row.isNullAt(0) &&
+        !row.isNullAt(1) &&
         !row.isNullAt(5)
     ) true else false
 
-  val dataset: Dataset[State] = dataFrame
-    .filter(filterFunc)
+  val dataset: Dataset[State] = dataFrame.filter(filterFunc)
     .map {
-      case Row(ticker: String, date: String, _, _, _, close: String, _, _, _, _, _, _, _, _) => State(ticker, date, close)
+      case Row(ticker: String, date: String, _, _, _, close: String, _, _, _, _, _, _, _, _) => State(ticker, "price", date, close)
     }.as[State]
 
-  println(dataset.map { _1 => _1 }.distinct().count())
+  println(dataset.count())
 }
 
 object simpleMovingAverage {
@@ -70,18 +68,13 @@ object simpleMovingAverage {
   def simpleMovingAverage(dataset: Dataset[State]): Unit = {
     dataset.withColumn("simpleMovingAverage", avg(dataset("value")).over(window)).show()
   }
-
 }
 
 object Start extends App {
 
 
   override def main(args: Array[String]): Unit = {
-
-
     val ds = Loader.dataset
     simpleMovingAverage.simpleMovingAverage(ds)
-
-
   }
 }

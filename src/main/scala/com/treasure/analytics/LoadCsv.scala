@@ -1,6 +1,5 @@
 package com.treasure.analytics
 
-import java.io.FileNotFoundException
 
 import com.treasure.util.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -123,7 +122,7 @@ object DemoSparkLoad extends App with LazyLogging {
 
     } else {
       logger.error(s"\n\ncsv file not found.  \nMove csv file to folder set in application.conf.  \nRename file to ${path.toCanonical}\n\n")
-      throw new FileNotFoundException(s"csv from https://www.quandl.com/product/WIKIP/WIKI/PRICES-Quandl-End-Of-Day-Stocks-Info expected at ${path.path}")
+//      throw new FileNotFoundException(s"csv from https://www.quandl.com/product/WIKIP/WIKI/PRICES-Quandl-End-Of-Day-Stocks-Info expected at ${path.path}")
     }
   }
 
