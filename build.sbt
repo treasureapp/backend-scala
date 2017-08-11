@@ -47,6 +47,12 @@ libraryDependencies ++= Seq(
   */
 libraryDependencies += "com.github.nscala-time" %% "nscala-time" % "2.16.0"
 
+/**
+  * spire
+  * https://github.com/non/spire
+  */
+libraryDependencies += "org.typelevel" %% "spire" % "0.14.1"
+libraryDependencies += "org.typelevel" %% "spire-extras" % "0.14.1"
 
 /**
   * toCSV
@@ -54,3 +60,9 @@ libraryDependencies += "com.github.nscala-time" %% "nscala-time" % "2.16.0"
   */
 //resolvers += Resolver.sonatypeRepo("releases")
 //libraryDependencies += "com.github.melrief" %% "purecsv" % "0.0.9"
+
+
+/**
+  * http://www.scala-sbt.org/0.13/docs/Howto-Scaladoc.html
+  */
+scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits")
