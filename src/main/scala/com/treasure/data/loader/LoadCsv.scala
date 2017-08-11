@@ -1,5 +1,4 @@
-package com.treasure.analytics
-
+package com.treasure.data.loader
 
 import com.treasure.util.Config
 import com.typesafe.scalalogging.LazyLogging

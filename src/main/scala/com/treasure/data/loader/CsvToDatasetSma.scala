@@ -1,6 +1,6 @@
-package com.treasure.analytics
+package com.treasure.data.loader
 
-import com.treasure.analytics.DemoSparkLoad.schema
+import DemoSparkLoad.schema
 import com.typesafe.config.ConfigFactory
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._

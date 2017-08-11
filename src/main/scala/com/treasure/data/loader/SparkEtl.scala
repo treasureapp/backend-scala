@@ -1,4 +1,4 @@
-package com.treasure.analytics
+package com.treasure.data.loader
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.expressions.UserDefinedFunction
