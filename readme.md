@@ -1,9 +1,12 @@
-# Load WIKI_PRICES csv file into Spark
+# Portfolio Analysis
 
-Expected data directory is set in `treasureapp/src/main/resources/application.conf`
+## TODO
 
-1. Requires Linux/Mac (?I think?)
-1. Rename file to: `price_data.csv`
-1. Move it into: `$HOME/TreasureData/` (ie `/Users/`*username*`/TreasureData`)
-1. Run Main Class: `com.treasure.analytics.DemoSparkLoad`
+- absolute return
+- relative return
+- annualized return
+- simple moving average
+- exponential moving
+- covariance/correlation
+
 
