@@ -10,6 +10,6 @@ pandoc turns `readme.md` into `index.html` which is hosted by github pages at [t
 
 for template see [pandoc_auto_preview](https://github.com/grahamcrowell/pandoc_auto_preview)
 
-[here's a link](/documentation/Model.md)
+[here's a link](/treasureapp/documentation/Model.md)
 
 $absd$
