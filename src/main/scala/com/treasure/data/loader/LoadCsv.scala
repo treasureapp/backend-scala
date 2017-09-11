@@ -2,8 +2,9 @@ package com.treasure.data.loader
 
 import com.treasure.util.Config
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.log4j.{Level, LogManager}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql._
 
 import scala.language.postfixOps
 
@@ -33,7 +34,7 @@ case class Price(ticker: String,
                  volume: Long,
                  exDividend: Double,
                  splitRatio: Double,
-                 adjopen: Double,
+                 adjOpen: Double,
                  adjHigh: Double,
                  adjLow: Double,
                  adjClose: Double,
@@ -45,6 +46,7 @@ object DemoSparkLoad extends App with LazyLogging {
 
   /**
     * Explicitly define meta data information of csv data.
+    *
     * @todo WTF could this be used for?
     * @note this is required because csv files don't include meta data
     * @see https://stackoverflow.com/a/42679059/5154695
@@ -71,7 +73,9 @@ object DemoSparkLoad extends App with LazyLogging {
 
 
   override def main(args: Array[String]): Unit = {
+    LogManager.getRootLogger.setLevel(Level.WARN)
 
+    Config.delete_out(Config.out_path)
     /**
       * Start SparkSession
       */
@@ -87,12 +91,10 @@ object DemoSparkLoad extends App with LazyLogging {
     /**
       * set logging level.
       */
-    //    LogManager.getRootLogger.setLevel(Level.WARN)
-
     /**
       * path of csv is set by TypeSafe configuration: src/main/resources/application.conf
       */
-    val path = scala.reflect.io.Path(Config.price_file)
+    val path = scala.reflect.io.Path(Config.test_price_file)
     logger.debug(s"loading csv file from:\n${path}")
 
 
@@ -103,10 +105,11 @@ object DemoSparkLoad extends App with LazyLogging {
       //***********************************
       // Load data
       //***********************************
+      LogManager.getRootLogger.setLevel(Level.INFO)
 
       logger.info(s"File found.  Loading data into DataFrame...")
       val price_df: DataFrame = readCsvFromPath(path.path, ss)
-      println(s"${price_df.count} data records loaded")
+      logger.info(s"${price_df.count} data records loaded")
       price_df.printSchema()
 
       //***********************************
@@ -116,54 +119,66 @@ object DemoSparkLoad extends App with LazyLogging {
         */
       logger.info(s"converting DataFrame -> Dataset[Price]")
       val price_ds = toPriceDs(price_df, ss)
-      println(s"${price_ds.count} data records loaded")
+      logger.info(s"${price_ds.count} data records loaded")
       price_ds.printSchema()
+
+      price_ds.write.partitionBy("ticker").parquet(Config.out_path.toCanonical.toString())
+      logger.debug(s"PARQUET path: ${Config.out_path.toCanonical.toString()}")
+
 
     } else {
       logger.error(s"\n\ncsv file not found.  \nMove csv file to folder set in application.conf.  \nRename file to ${path.toCanonical}\n\n")
-//      throw new FileNotFoundException(s"csv from https://www.quandl.com/product/WIKIP/WIKI/PRICES-Quandl-End-Of-Day-Stocks-Info expected at ${path.path}")
+      //      throw new FileNotFoundException(s"csv from https://www.quandl.com/product/WIKIP/WIKI/PRICES-Quandl-End-Of-Day-Stocks-Info expected at ${path.path}")
     }
   }
 
-  def toPriceDs(price_df: DataFrame, ss: SparkSession): Dataset[Tuple1[Price]] = {
-
+  def toPriceDs(price_df: DataFrame, ss: SparkSession): Dataset[Price] = {
     import ss.implicits._
 
-    price_df.map {
-      case Row(
-      ticker: String,
-      date: String,
-      open: Option[String],
-      high: Option[String],
-      low: Option[String],
-      close: Option[String],
-      volume: Option[String],
-      exDividend: Option[String],
-      splitRatio: Option[String],
-      adjopen: Option[String],
-      adjHigh: Option[String],
-      adjLow: Option[String],
-      adjClose: Option[String],
-      adjVolume: Option[String])
-      =>
-        Tuple1(Price(
-          ticker,
-          date,
-          open.getOrElse("0.0").toDouble,
-          high.getOrElse("0.0").toDouble,
-          low.getOrElse("0.0").toDouble,
-          close.getOrElse("0.0").toDouble,
-          volume.getOrElse("0.0").toDouble.round,
-          exDividend.getOrElse("0.0").toDouble,
-          splitRatio.getOrElse("0.0").toDouble,
-          adjopen.getOrElse("0.0").toDouble,
-          adjHigh.getOrElse("0.0").toDouble,
-          adjLow.getOrElse("0.0").toDouble,
-          adjClose.getOrElse("0.0").toDouble,
-          adjVolume.getOrElse("0.0").toDouble.round
-        ))
-      case _ => Tuple1(null)
-    }.as[Tuple1[Price]]
+    val prices = price_df
+      .filter((r: Row) => !r.anyNull || !(0 to r.length).forall(r.getString(_).isEmpty))
+
+//    prices.dtypes.foreach(println)
+
+//    prices
+//      .foreach(println(_))
+
+    price_df
+      .filter((r: Row) => !r.anyNull || !(0 to r.length).forall(r.getString(_).isEmpty))
+      .map {
+        case Row(
+        ticker: String,
+        date: String,
+        open: String,
+        high: String,
+        low: String,
+        close: String,
+        volume: String,
+        exDividend: String,
+        splitRatio: String,
+        adjOpen: String,
+        adjHigh: String,
+        adjLow: String,
+        adjClose: String,
+        adjVolume: String)
+        =>
+          Price(
+            ticker,
+            date,
+            open.toDouble,
+            high.toDouble,
+            low.toDouble,
+            close.toDouble,
+            volume.toDouble.round,
+            exDividend.toDouble,
+            splitRatio.toDouble,
+            adjOpen.toDouble,
+            adjHigh.toDouble,
+            adjLow.toDouble,
+            adjClose.toDouble,
+            adjVolume.toDouble.round
+          )
+      }
   }
 
   /**
@@ -197,7 +212,7 @@ object DemoSparkLoad extends App with LazyLogging {
       */
     ss.read // creates DataFrameReader
       .option("header", true)
-      .schema(schema) // explicitly set meta data @todo this has no effect
+      //      .schema(schema) // explicitly set meta data @todo this has no effect
       .csv(path) // executes reader, returns DataFrame
   }
 }

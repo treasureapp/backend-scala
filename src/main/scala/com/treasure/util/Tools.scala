@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.io.Source
+import scala.reflect.io.Path
 
 /**
   * Created by gcrowell on 2017-06-23.
@@ -20,7 +21,13 @@ object Config extends LazyLogging {
   val statementRootPath = config.getString("treasure.data.statement")
   val price_file = config.getString("treasure.data.price_file")
   val test_price_file = config.getString("treasure.data.test_price_file")
+  val out_path: Path = Config.dataRootPath.concat("price_parquet")
 
+  def delete_out(out_path: Path): Unit = {
+    if (out_path.exists) {
+      out_path.deleteRecursively()
+    }
+  }
 }
 
 object Constants {
@@ -57,7 +64,7 @@ object DataLoader {
     }.toSeq
   }
 
-  def toPricePoint(tupleData: Seq[Option[Tuple7[String, Long, Double, Double, Double, Double, Long]]]) : Seq[PricePoint] = {
+  def toPricePoint(tupleData: Seq[Option[Tuple7[String, Long, Double, Double, Double, Double, Long]]]): Seq[PricePoint] = {
     tupleData.flatten.map(TupleToPricePoint.convert)
   }
 
