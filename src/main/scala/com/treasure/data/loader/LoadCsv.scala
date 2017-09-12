@@ -96,12 +96,8 @@ object DemoSparkLoad extends App with LazyLogging {
       */
     val path = scala.reflect.io.Path(Config.test_price_file)
     logger.debug(s"loading csv file from:\n${path}")
-
-
     // check if data file exists
     val csvExists = if (path.exists) {
-
-
       //***********************************
       // Load data
       //***********************************
