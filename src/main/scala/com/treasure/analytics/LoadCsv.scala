@@ -2,7 +2,7 @@ package com.treasure.analytics
 
 import java.io.FileNotFoundException
 
-import com.treasure.util.Config
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
@@ -41,6 +41,7 @@ case class Price(ticker: String,
                  adjClose: Double,
                  adjVolume: Long
                 )
+
 //case class Price(ticker: String,
 //                 date: String,
 //                 open: Option[String],
@@ -63,6 +64,7 @@ object DemoSparkLoad extends App with LazyLogging {
 
   /**
     * Explicitly define meta data information of csv data.
+    *
     * @todo WTF could this be used for?
     * @note this is required because csv files don't include meta data
     * @see https://stackoverflow.com/a/42679059/5154695
@@ -108,7 +110,9 @@ object DemoSparkLoad extends App with LazyLogging {
     /**
       * path of csv is set by TypeSafe configuration: src/main/resources/application.conf
       */
-    val path = scala.reflect.io.Path(Config.price_file)
+    val config = ConfigFactory.load()
+    val pathStr = config.getString("treasure.data.price_file")
+    val path = scala.reflect.io.Path(pathStr)
     logger.debug(s"loading csv file from:\n${path}")
 
 
