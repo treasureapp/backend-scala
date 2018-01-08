@@ -5,7 +5,7 @@ import java.io.FileNotFoundException
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Dataset, DataFrame, Row, SparkSession}
 
 import scala.language.postfixOps
 
@@ -33,31 +33,30 @@ case class Price(ticker: String,
                  low: Double,
                  close: Double,
                  volume: Long,
-                 exDividend: Double,
-                 splitRatio: Double,
-                 adjopen: Double,
-                 adjHigh: Double,
-                 adjLow: Double,
-                 adjClose: Double,
-                 adjVolume: Long
+                 ex_dividend: Double,
+                 split_ratio: Double,
+                 adj_open: Double,
+                 adj_high: Double,
+                 adj_low: Double,
+                 adj_close: Double,
+                 adj_volume: Long
                 )
 
-//case class Price(ticker: String,
-//                 date: String,
-//                 open: Option[String],
-//                 high: Option[String],
-//                 low: Option[String],
-//                 close: Option[String],
-//                 volume: Option[String],
-//                 exDividend: Option[String],
-//                 splitRatio: Option[String],
-//                 adjopen: Option[String],
-//                 adjHigh: Option[String],
-//                 adjLow: Option[String],
-//                 adjClose: Option[String],
-//                 adjVolume: Option[String]
-//                )
-
+case class PriceStr(ticker: String,
+                    date: String,
+                    open: String,
+                    high: String,
+                    low: String,
+                    close: String,
+                    volume: String,
+                    ex_dividend: String,
+                    split_ratio: String,
+                    adj_open: String,
+                    adj_high: String,
+                    adj_low: String,
+                    adj_close: String,
+                    adj_volume: String
+                   )
 
 object DemoSparkLoad extends App with LazyLogging {
 
@@ -124,20 +123,29 @@ object DemoSparkLoad extends App with LazyLogging {
       // Load data
       //***********************************
 
+
       logger.info(s"File found.  Loading data into DataFrame...")
       val price_df: DataFrame = readCsvFromPath(path.path, ss)
       println(s"${price_df.count} data records loaded")
-      price_df.printSchema()
+//      price_df.printSchema()
+      import ss.implicits._
+      val price_str_ds = price_df.withColumnRenamed("ex-dividend", "ex_dividend").as[PriceStr]
+      val price_ds = asDataSet(price_str_ds, ss)
+      price_ds.printSchema()
+      println(price_ds.count())
+      println(price_ds.columns.mkString("\n"))
+      //      price_df.as[PriceStr]
 
       //***********************************
 
       /**
         * etl the data into Dataset[Price]
         */
-      logger.info(s"converting DataFrame -> Dataset[Price]")
-      val price_ds = toPriceDs(price_df, ss)
-      println(s"${price_ds.count} data records loaded")
-      price_ds.printSchema()
+      //      logger.info(s"converting DataFrame -> Dataset[Price]")
+      //      val price_ds = toPriceDs(price_df, ss)
+      //      println(s"${price_ds.count} data records loaded")
+      //      price_ds.printSchema()
+//      profileDataFrame(price_df, ss)
 
     } else {
       logger.error(s"\n\ncsv file not found.  \nMove csv file to folder set in application.conf.  \nRename file to ${path.toCanonical}\n\n")
@@ -145,45 +153,36 @@ object DemoSparkLoad extends App with LazyLogging {
     }
   }
 
-  def toPriceDs(price_df: DataFrame, ss: SparkSession): Dataset[Tuple1[Price]] = {
-
+  /**
+    * Profile with price data frame
+    */
+  def profileDataFrame(price_df: DataFrame, ss: SparkSession): Unit = {
     import ss.implicits._
+    println(price_df.columns.mkString("\n"))
 
-    price_df.map {
-      case Row(
-      ticker: String,
-      date: String,
-      open: Option[String],
-      high: Option[String],
-      low: Option[String],
-      close: Option[String],
-      volume: Option[String],
-      exDividend: Option[String],
-      splitRatio: Option[String],
-      adjopen: Option[String],
-      adjHigh: Option[String],
-      adjLow: Option[String],
-      adjClose: Option[String],
-      adjVolume: Option[String])
-      =>
-        Tuple1(Price(
-          ticker,
-          date,
-          open.getOrElse("0.0").toDouble,
-          high.getOrElse("0.0").toDouble,
-          low.getOrElse("0.0").toDouble,
-          close.getOrElse("0.0").toDouble,
-          volume.getOrElse("0.0").toDouble.round,
-          exDividend.getOrElse("0.0").toDouble,
-          splitRatio.getOrElse("0.0").toDouble,
-          adjopen.getOrElse("0.0").toDouble,
-          adjHigh.getOrElse("0.0").toDouble,
-          adjLow.getOrElse("0.0").toDouble,
-          adjClose.getOrElse("0.0").toDouble,
-          adjVolume.getOrElse("0.0").toDouble.round
-        ))
-      case _ => Tuple1(null)
-    }.as[Tuple1[Price]]
+    //    price_df.select($"ticker").distinct().show(100)
+    //    price_df.filter($"open".isNull).show(100)
+    //    val foo = (columnNames: Array[String]) => columnNames.map((columnName: String) => $"$columnName")
+    //    foo(Array(""))
+    println(s"TOTAL ROW COUNT: ${price_df.count()}")
+    for (column <- price_df.columns) {
+      println(column)
+      val nullCount = price_df.filter($"$column".isNull).count()
+      println(s"\tNULL count: $nullCount")
+      val naCount = price_df.filter($"$column".isNaN).count()
+      println(s"\tNA count: $naCount")
+      val notNullCount = price_df.filter($"$column".isNotNull).count()
+      println(s"\tNOT NULL count: $notNullCount")
+      val DroppedNaCount = price_df.count() - price_df.na.drop().count()
+      println(s"\tNo NA count: $DroppedNaCount")
+      val emptyCount = price_df.filter($"$column".===("")).count()
+      println(s"\tblank count: $emptyCount")
+      price_df.where($"$column" === "")
+      val ACount = price_df.where($"$column" === "A").count()
+      println(s"\tblank count: $ACount")
+    }
+    //    price_df.columns.map((x) => StringToColumn(x).$())
+
   }
 
   /**
@@ -219,5 +218,87 @@ object DemoSparkLoad extends App with LazyLogging {
       .option("header", true)
       .schema(schema) // explicitly set meta data @todo this has no effect
       .csv(path) // executes reader, returns DataFrame
+  }
+
+  def toPriceDs(price_df: DataFrame, ss: SparkSession): Dataset[Tuple1[Price]] = {
+
+    import ss.implicits._
+
+
+    price_df.map {
+      case Row(
+      ticker: String,
+      date: String,
+      open: String,
+      high: String,
+      low: String,
+      close: String,
+      volume: String,
+      ex_dividend: String,
+      split_ratio: String,
+      adj_open: String,
+      adj_high: String,
+      adj_low: String,
+      adj_close: String,
+      adj_volume: String)
+      =>
+        Tuple1(Price(
+          ticker,
+          date,
+          open.toDouble,
+          high.toDouble,
+          low.toDouble,
+          close.toDouble,
+          volume.toDouble.round,
+          ex_dividend.toDouble,
+          split_ratio.toDouble,
+          adj_open.toDouble,
+          adj_high.toDouble,
+          adj_low.toDouble,
+          adj_close.toDouble,
+          adj_volume.toDouble.round
+        ))
+      case _ => Tuple1(null)
+    }.as[Tuple1[Price]]
+
+
+  }
+
+  def asDataSet(price_str_ds: Dataset[PriceStr], ss: SparkSession): Dataset[Price] = {
+    import ss.implicits._
+    price_str_ds.map {
+      case PriceStr(
+      ticker: String,
+      date: String,
+      open: String,
+      high: String,
+      low: String,
+      close: String,
+      volume: String,
+      ex_dividend: String,
+      split_ratio: String,
+      adj_open: String,
+      adj_high: String,
+      adj_low: String,
+      adj_close: String,
+      adj_volume: String
+      ) =>
+        Price(
+          ticker,
+          date,
+          open.toDouble,
+          high.toDouble,
+          low.toDouble,
+          close.toDouble,
+          volume.toDouble.round,
+          ex_dividend.toDouble,
+          split_ratio.toDouble,
+          adj_open.toDouble,
+          adj_high.toDouble,
+          adj_low.toDouble,
+          adj_close.toDouble,
+          adj_volume.toDouble.round
+        )
+    }.as[Price]
   }
 }
